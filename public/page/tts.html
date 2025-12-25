@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Retro TTS Synth</title>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+body {
+    background: radial-gradient(circle at top, #222 0%, #000 70%);
+    color: #00ffcc;
+    font-family: 'Press Start 2P', monospace;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+.panel {
+    background: #111;
+    border: 4px solid #00ffcc;
+    box-shadow: 0 0 20px #00ffcc;
+    padding: 20px;
+    width: 420px;
+}
+
+h1 {
+    font-size: 14px;
+    text-align: center;
+    margin-bottom: 15px;
+}
+
+textarea {
+    width: 100%;
+    height:  100px;
+    background: black;
+    color: #00ffcc;
+    border: 2px solid #00ffcc;
+    font-family: inherit;
+    padding: 0px;
+    resize: none;
+}
+
+select, input[type=range] {
+    width: 100%;
+    margin-top: 8px;
+}
+
+label {
+    font-size: 9px;
+    display: block;
+    margin-top: 10px;
+}
+
+button {
+    margin-top: 15px;
+    width: 100%;
+    padding: 10px;
+    background: #00ffcc;
+    border: none;
+    font-family: inherit;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #00ffaa;
+}
+</style>
+</head>
+
+<body>
+<div class="panel">
+    <h1>RETRO TTS SYNTH</h1>
+
+    <textarea id="text" placeholder="TYPE TEXT & PRESS ENTER"></textarea>
+
+    <label>VOICE TYPE</label>
+    <select id="voiceType">
+        <option value="male">MALE</option>
+        <option value="robot">ROBOT</option>
+    </select>
+
+    <label>PITCH</label>
+    <input type="range" id="pitch" min="0" max="2" step="0.1" value="1">
+
+    <label>DECIBEL (VOLUME)</label>
+    <input type="range" id="volume" min="0" max="1" step="0.1" value="1">
+
+    <button onclick="speak()">SPEAK</button>
+</div>
+
+<script>
+const synth = window.speechSynthesis;
+
+function speak() {
+    synth.cancel();
+
+    const text = document.getElementById("text").value;
+    if (!text) return;
+
+    const utter = new SpeechSynthesisUtterance(text);
+    const voices = synth.getVoices();
+    const type = document.getElementById("voiceType").value;
+
+    if (type === "robot") {
+        utter.voice = voices.find(v => v.lang.startsWith("en")) || voices[0];
+        utter.pitch = 0.2;
+        utter.rate = 0.85;
+    } else {
+        utter.voice = voices.find(v => v.name.toLowerCase().includes("male")) || voices[0];
+        utter.pitch = 0.9;
+    }
+
+    utter.pitch = parseFloat(document.getElementById("pitch").value);
+    utter.volume = parseFloat(document.getElementById("volume").value);
+
+    synth.speak(utter);
+}
+
+document.getElementById("text").addEventListener("keydown", e => {
+    if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        speak();
+    }
+});
+
+speechSynthesis.onvoiceschanged = () => {};
+</script>
+</body>
+</html>
