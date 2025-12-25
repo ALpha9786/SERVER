@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WEB</title>
+<link rel="stylesheet" href="/style/main.css">
+</head>
+<body>
+<div id="app">
+
+  <!-- LEFT -->
+  <div id="left">
+    <h2>/public/page</h2>
+    <div id="pages">loading...</div>
+  </div>
+  <!-- LEFT 2 : STORAGE -->
+<div id="left2" style="max-height: auto;">
+  <div class="title">STORAGE</div>
+
+  <div class="dropzone" id="dropzone">
+    Drag files here<br>or click to upload
+  </div>
+
+  <div class="files" id="files">
+    <div class="file">
+      <div class="icon">📄</div>
+      <div class="name">example.zip</div>
+      <div class="size">12MB</div>
+    </div>
+  </div>
+</div>
+
+  <!-- CENTER -->
+  <div id="center">
+    <span>HI, EVERYONE</span>
+  </div>
+
+  <!-- RIGHT -->
+  <div id="right">
+    <div id="login">
+      <input id="username" placeholder="enter username" />
+      <button onclick="login()">JOIN</button>
+    </div>
+
+    <div id="chat">
+      <div id="users"></div>
+      <div id="messages"></div>
+      <div id="send">
+        <input id="msg" placeholder="message" />
+        <button onclick="sendMsg()">Send</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ===================== STATE ===================== */
+let ws;
+let myName = null;
+let currentUser = null;
+
+/* ===================== INIT ===================== */
+connectWS();
+loadPages();
+loadStorage();
+
+/* ===================== WEBSOCKET ===================== */
+function connectWS(){
+  ws = new WebSocket(
+    (location.protocol === "https:" ? "wss://" : "ws://") + location.host
+  );
+
+  ws.onmessage = e => {
+    if (e.data === "reload") {
+      location.reload();
+      return;
+    }
+
+    let d;
+    try { d = JSON.parse(e.data); } catch { return; }
+
+    if (d.type === "error") alert(d.msg);
+
+    if (d.type === "users") renderUsers(d.users);
+
+    if (d.type === "chat") addMessage(d.from, d.msg);
+  };
+
+  ws.onclose = () => {
+    console.log("ws closed, reconnecting...");
+    setTimeout(connectWS, 1000);
+  };
+}
+
+/* ===================== PAGES ===================== */
+function loadPages(){
+  fetch("/api/pages")
+    .then(r => r.json())
+    .then(list => {
+      const el = document.getElementById("pages");
+      el.innerHTML = "";
+      list.forEach(f => {
+        const d = document.createElement("div");
+        d.innerHTML = `<a href="/page/${f}" target="_blank">${f}</a>`;
+        el.appendChild(d);
+      });
+    })
+    .catch(() => {
+      document.getElementById("pages").innerText = "no pages";
+    });
+}
+
+function getFileIcon(name, size){
+  if (!name.includes(".") && size === 0) return "📂";
+
+  const ext = name.split(".").pop().toLowerCase();
+
+  const icons = {
+    // web
+    html: "🌐",
+    css: "🎨", 
+    js: "🟨",
+    json: "🗄️",
+    xml: "🗄️",
+    php: "🐘",
+    // 3D
+    obj: "🧊",
+    fbx: "🧊",
+    glb: "🧊",
+    gltf: "🧊",
+    "3ds": "🧊",
+
+
+    // images
+    png: "🖼️",
+    jpg: "🖼️",
+    jpeg: "🖼️",
+    gif: "🖼️",
+    webp: "🖼️",
+    svg: "🖼️",
+    heif: "🖼️",
+    heic: "🖼️",
+    bmp: "🖼️",
+    tif: "🖼️",
+    tiff: "🖼️",
+    ai: "🖼️",
+    psd: "🖼️",
+    eps: "🖼️",
+    avif: "🖼️",
+    ico: "🖼️",
+
+
+    // video
+    mp4: "🎬",
+    mkv: "🎬",
+    avi: "🎬",
+    mov: "🎬",
+
+    // audio
+    mp3: "🎵",
+    wav: "🎵",
+    ogg: "🎵",
+
+    // archive
+    zip: "🗜️",
+    rar: "🗜️",
+    "7z": "🗜️",
+    tar: "🗜️",
+    gz: "🗜️",
+    gx: "🗜️",
+    deb : "🗜️",
+    rpm : "🗜️",
+    
+    
+   //font
+    ttf: "🔤",
+    otf: "🔤",
+    woff: "🔤",
+    woff2: "🔤",
+
+    // document
+    pdf: "📕",
+    txt: "📄",
+    md: "ℹ️",
+
+    // code
+    py: "🐍",
+    java: "☕",
+    c: "💻",
+    cpp: "💻",
+    cs: "💻",
+    asp: "💻",
+    rb: "💎",
+    go: "🐹",
+    rs: "🦀",
+    swift: "🦅",
+    kt: "🤖",
+    ts: "🟦",
+    jsx: "🟦",
+    tsx: "🟦",
+    h: "💻",
+    hpp: "💻",
+    d : "💻",
+
+    // others
+    exe: "⚙️",
+    dll: "⚙️",
+    iso: "💿",
+    ISO: "💿",
+    bin: "💾",
+    "3gp": "📱",
+    ics: "📅",
+    ppt: "📊",
+    pptx: "📊",
+    doc: "📄",
+    docx: "📄",
+    xls: "📈",
+    xlsx: "📈",
+    apk: "🤖",
+    dmg: "🍎",
+    vmdk: "💽",
+    vdi: "💽",
+    vhd: "💽",
+    vhdx: "💽",
+    ovf: "💽",
+    vbox: "💽",
+    ics: "📅",
+    epub: "📚",
+    plist: "📋",
+    bash: "💻",
+    sh: "💻",
+    ps : "💻",
+    bat : "💻",
+  };
+  return icons[ext] || "📄";
+}
+
+
+/* ===================== STORAGE ===================== */
+const dropzone = document.querySelector(".dropzone");
+const filesBox = document.querySelector("#left2 .files");
+
+function isFolder(name, size){
+  return !name.includes(".") && size === 0;
+}
+
+function loadStorage(){
+  fetch("/api/storage")
+    .then(r => r.json())
+    .then(list => {
+      filesBox.innerHTML = "";
+
+      list.forEach(f => {
+        const div = document.createElement("div");
+        div.className = "file";
+
+        const folder = isFolder(f.name, f.size);
+
+        div.innerHTML = `
+          <div class="icon">${getFileIcon(f.name, f.size)}</div>
+          <div class="name">${f.name}</div>
+          <div class="size">${formatSize(f.size)}</div>
+        `;
+
+        div.onclick = () => {
+          if (folder) {
+            console.log("open folder:", f.name);
+            // TODO: loadStorage(path)
+          } else {
+            const a = document.createElement("a");
+            a.href = "/storage/" + encodeURIComponent(f.name);
+            a.download = f.name;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+          }
+        };
+
+        filesBox.appendChild(div);
+      });
+    });
+}
+
+
+dropzone.onclick = () => {
+  const i = document.createElement("input");
+  i.type = "file";
+  i.onchange = () => uploadFile(i.files[0]);
+  i.click();
+};
+
+dropzone.ondragover = e => {
+  e.preventDefault();
+  dropzone.style.borderColor = "#38bdf8";
+};
+
+dropzone.ondragleave = () => {
+  dropzone.style.borderColor = "";
+};
+
+dropzone.ondrop = e => {
+  e.preventDefault();
+  dropzone.style.borderColor = "";
+  if (e.dataTransfer.files[0]) uploadFile(e.dataTransfer.files[0]);
+};
+
+function uploadFile(file){
+  const reader = new FileReader();
+  reader.onload = () => {
+    fetch("/api/upload", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: file.name,
+        data: btoa(reader.result)
+      })
+    }).then(loadStorage); 
+  };
+  reader.readAsBinaryString(file);
+}
+
+function formatSize(n){
+  if (n < 1024) return n + "B";
+  if (n < 1024**2) return (n/1024).toFixed(1) + "KB";
+  if (n < 1024**3) return (n/1024**2).toFixed(1) + "MB";
+  return (n/1024**3).toFixed(1) + "GB";
+}
+
+/* ===================== CHAT ===================== */
+function login(){
+  const input = document.getElementById("username");
+  myName = input.value.trim();
+  if (!myName) return alert("enter name");
+
+  ws.send(JSON.stringify({
+    type: "login",
+    username: myName
+  }));
+
+  document.getElementById("login").style.display = "none";
+  document.getElementById("chat").style.display = "flex";
+}
+
+function renderUsers(list){
+  const u = document.getElementById("users");
+  u.innerHTML = "";
+  list.forEach(name => {
+    const d = document.createElement("div");
+    d.textContent = name;
+    if (name === currentUser) d.classList.add("active");
+    d.onclick = () => {
+      currentUser = name;
+      renderUsers(list);
+    };
+    u.appendChild(d);
+  });
+}
+
+function sendMsg(){
+  const i = document.getElementById("msg");
+  const msg = i.value.trim();
+  if (!msg || !currentUser) return;
+
+  ws.send(JSON.stringify({
+    type: "chat",
+    to: currentUser,
+    msg
+  }));
+
+  addMessage(myName, msg);
+  i.value = "";
+}
+
+function addMessage(from, msg){
+  const box = document.getElementById("messages");
+  const d = document.createElement("div");
+  d.className = "msg";
+  d.innerHTML = `<span class="from">${from}</span>: ${msg}`;
+  box.appendChild(d);
+  box.scrollTop = box.scrollHeight;
+}
+</script>
+</body>
+</html>
